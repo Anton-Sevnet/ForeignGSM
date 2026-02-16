@@ -6,11 +6,17 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.telecom.TelecomManager
+import android.util.Log
 import android.widget.Toast
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.REQUEST_CODE_SET_DEFAULT_DIALER
 import org.fossify.phone.R
+import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.getHandleToUse
+import org.fossify.phone.extensions.matchesOutgoingBridgePattern
+import org.fossify.phone.extensions.sendGatewaySms
+import org.fossify.phone.helpers.CallManager
+import org.fossify.phone.helpers.CallMetadataBridge
 
 class DialerActivity : SimpleActivity() {
     private var callNumber: Uri? = null
@@ -36,6 +42,17 @@ class DialerActivity : SimpleActivity() {
     @SuppressLint("MissingPermission")
     private fun initOutgoingCall() {
         try {
+            val originalNumber = callNumber.toString().replace("tel:", "")
+
+            // Outgoing bridge: redirect matching numbers through Gateway B
+            if (matchesOutgoingBridgePattern(originalNumber)) {
+                Log.d("ForeignGSM", "Outgoing bridge: redirecting call via gateway")
+                sendGatewaySms(originalNumber)
+                CallMetadataBridge.storeOutgoing(originalNumber)
+                CallManager.bridgedDestinationNumber = originalNumber
+                callNumber = Uri.parse("tel:${config.gatewayBNumber}")
+            }
+
             if (isNumberBlocked(callNumber.toString().replace("tel:", ""), getBlockedNumbers())) {
                 toast(R.string.calling_blocked_number)
                 finish()

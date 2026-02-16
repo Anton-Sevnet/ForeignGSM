@@ -19,6 +19,9 @@ const val DIALPAD_VIBRATION = "dialpad_vibration"
 const val DIALPAD_BEEPS = "dialpad_beeps"
 const val HIDE_DIALPAD_NUMBERS = "hide_dialpad_numbers"
 const val ALWAYS_SHOW_FULLSCREEN = "always_show_fullscreen"
+const val GATEWAY_B_NUMBER = "gateway_b_number"
+const val OUTGOING_BRIDGE_PATTERN = "outgoing_bridge_pattern"
+const val OUTGOING_BRIDGE_ENABLED = "outgoing_bridge_enabled"
 
 const val ALL_TABS_MASK = TAB_CONTACTS or TAB_FAVORITES or TAB_CALL_HISTORY
 

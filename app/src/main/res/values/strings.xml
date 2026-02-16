@@ -84,6 +84,16 @@
     <string name="import_call_history">Import call history</string>
     <string name="calling_accounts">Calling accounts</string>
 
+    <!-- Gateway Settings -->
+    <string name="gateway_settings">Gateway Settings</string>
+    <string name="gateway_b_number">Gateway B Number</string>
+    <string name="gateway_b_number_summary">Phone number of the GoIP gateway in Country B</string>
+    <string name="outgoing_bridge_pattern">Outgoing Bridge Pattern</string>
+    <string name="outgoing_bridge_pattern_summary">Regex pattern for numbers to route through gateway (e.g. ^\\+7\\d{10}$)</string>
+    <string name="outgoing_bridge_enabled">Enable Outgoing Bridge</string>
+    <string name="outgoing_bridge_enabled_summary">Redirect matching outgoing calls through Gateway B</string>
+    <string name="not_set">Not set</string>
+
     <!-- FAQ -->
     <string name="faq_1_title">I hear incoming calls, but the screen doesn\'t turn on. What can I do?</string>
     <string name="faq_1_text">Such issues can have many device and system specific reasons, hard to say in general. You should look around in your device settings and make sure that the app is allowed to pop up when in background and allow displaying over other apps.</string>

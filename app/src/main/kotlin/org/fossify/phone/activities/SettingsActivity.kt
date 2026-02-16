@@ -1,8 +1,11 @@
 package org.fossify.phone.activities
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import android.view.Menu
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.serialization.SerializationException
@@ -12,6 +15,7 @@ import org.fossify.commons.dialogs.ChangeDateTimeFormatDialog
 import org.fossify.commons.dialogs.FeatureLockedDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.addLockedLabelIfNeeded
+import org.fossify.commons.extensions.getAlertDialogBuilder
 import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.getFontSizeText
@@ -117,6 +121,9 @@ class SettingsActivity : SimpleActivity() {
         setupAlwaysShowFullscreen()
         setupCallsExport()
         setupCallsImport()
+        setupGatewayBNumber()
+        setupOutgoingBridgePattern()
+        setupOutgoingBridgeEnabled()
         updateTextColors(binding.settingsHolder)
 
         binding.apply {
@@ -126,6 +133,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsStartupLabel,
                 settingsCallsLabel,
                 settingsDialpadSectionLabel,
+                settingsGatewaySectionLabel,
                 settingsMigrationSectionLabel
             ).forEach {
                 it.setTextColor(getProperPrimaryColor())
@@ -402,6 +410,78 @@ class SettingsActivity : SimpleActivity() {
     private fun setupCallsImport() {
         binding.settingsImportCallsHolder.setOnClickListener {
             getContent.launch(IMPORT_CALL_HISTORY_FILE_TYPES.toTypedArray())
+        }
+    }
+
+    private fun setupGatewayBNumber() {
+        binding.apply {
+            settingsGatewayNumber.text = config.gatewayBNumber.ifEmpty {
+                getString(R.string.not_set)
+            }
+            settingsGatewayNumberHolder.setOnClickListener {
+                requestBridgePermissions {
+                    val editText = EditText(this@SettingsActivity).apply {
+                        hint = getString(R.string.gateway_b_number)
+                        setText(config.gatewayBNumber)
+                        setPadding(48, 32, 48, 32)
+                    }
+                    getAlertDialogBuilder()
+                    .setTitle(R.string.gateway_b_number)
+                    .setView(editText)
+                    .setPositiveButton(org.fossify.commons.R.string.ok) { _, _ ->
+                        config.gatewayBNumber = editText.text.toString().trim()
+                        settingsGatewayNumber.text = config.gatewayBNumber.ifEmpty {
+                            getString(R.string.not_set)
+                        }
+                    }
+                    .setNegativeButton(org.fossify.commons.R.string.cancel, null)
+                    .show()
+                }
+            }
+        }
+    }
+
+    private fun requestBridgePermissions(callback: () -> Unit) {
+        handlePermission(Manifest.permission.RECEIVE_SMS) { receiveGranted ->
+            handlePermission(Manifest.permission.SEND_SMS) { sendGranted ->
+                callback()
+            }
+        }
+    }
+
+    private fun setupOutgoingBridgePattern() {
+        binding.apply {
+            settingsOutgoingBridgePattern.text = config.outgoingBridgePattern.ifEmpty {
+                getString(R.string.not_set)
+            }
+            settingsOutgoingBridgePatternHolder.setOnClickListener {
+                val editText = EditText(this@SettingsActivity).apply {
+                    hint = getString(R.string.outgoing_bridge_pattern_summary)
+                    setText(config.outgoingBridgePattern)
+                    setPadding(48, 32, 48, 32)
+                }
+                getAlertDialogBuilder()
+                    .setTitle(R.string.outgoing_bridge_pattern)
+                    .setView(editText)
+                    .setPositiveButton(org.fossify.commons.R.string.ok) { _, _ ->
+                        config.outgoingBridgePattern = editText.text.toString().trim()
+                        settingsOutgoingBridgePattern.text = config.outgoingBridgePattern.ifEmpty {
+                            getString(R.string.not_set)
+                        }
+                    }
+                    .setNegativeButton(org.fossify.commons.R.string.cancel, null)
+                    .show()
+            }
+        }
+    }
+
+    private fun setupOutgoingBridgeEnabled() {
+        binding.apply {
+            settingsOutgoingBridgeEnabled.isChecked = config.outgoingBridgeEnabled
+            settingsOutgoingBridgeEnabledHolder.setOnClickListener {
+                settingsOutgoingBridgeEnabled.toggle()
+                config.outgoingBridgeEnabled = settingsOutgoingBridgeEnabled.isChecked
+            }
         }
     }
 

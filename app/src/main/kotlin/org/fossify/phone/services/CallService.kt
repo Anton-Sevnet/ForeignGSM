@@ -7,11 +7,14 @@ import org.fossify.commons.extensions.canUseFullScreenIntent
 import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.helpers.PERMISSION_POST_NOTIFICATIONS
 import org.fossify.phone.activities.CallActivity
+import android.util.Log
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.isGatewayNumber
 import org.fossify.phone.extensions.isOutgoing
 import org.fossify.phone.extensions.keyguardManager
 import org.fossify.phone.extensions.powerManager
 import org.fossify.phone.helpers.CallManager
+import org.fossify.phone.helpers.CallMetadataBridge
 import org.fossify.phone.helpers.CallNotificationManager
 import org.fossify.phone.helpers.NoCall
 import org.fossify.phone.models.Events
@@ -36,6 +39,27 @@ class CallService : InCallService() {
         CallManager.onCallAdded(call)
         CallManager.inCallService = this
         call.registerCallback(callListener)
+
+        val number = call.details?.handle?.schemeSpecificPart.orEmpty()
+
+        // Incoming bridge: detect gateway call, fetch real caller from SMS
+        if (!call.isOutgoing() && isGatewayNumber(number)) {
+            val realCaller = CallMetadataBridge.fetchIncoming()
+            if (realCaller != null) {
+                CallManager.bridgedCallerNumber = realCaller
+                Log.d("ForeignGSM", "Incoming bridge activated")
+            }
+        }
+
+        // Outgoing bridge: call to gateway, show real destination in UI
+        if (call.isOutgoing() && isGatewayNumber(number)) {
+            val realDest = CallMetadataBridge.fetchOutgoing()
+            if (realDest != null) {
+                CallManager.bridgedCallerNumber = realDest
+                CallManager.bridgedDestinationNumber = realDest
+                Log.d("ForeignGSM", "Outgoing bridge activated")
+            }
+        }
 
         // Incoming/Outgoing (locked): high priority (FSI)
         // Incoming (unlocked): if user opted in, low priority ➜ manual activity start, otherwise high priority (FSI)

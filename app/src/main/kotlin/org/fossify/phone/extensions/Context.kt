@@ -10,6 +10,9 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.PowerManager
 import android.telecom.TelecomManager
+import android.telephony.PhoneNumberUtils
+import android.telephony.SmsManager
+import android.util.Log
 import org.fossify.commons.extensions.launchActivityIntent
 import org.fossify.commons.extensions.telecomManager
 import org.fossify.commons.helpers.KEY_PHONE
@@ -85,6 +88,35 @@ fun Context.canLaunchAccountsConfiguration(): Boolean {
 
 fun Context.launchAccountsConfiguration() {
     startActivity(Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS))
+}
+
+fun Context.isGatewayNumber(number: String): Boolean {
+    val gateway = config.gatewayBNumber
+    if (gateway.isBlank()) return false
+    return PhoneNumberUtils.compare(number, gateway)
+}
+
+fun Context.matchesOutgoingBridgePattern(number: String): Boolean {
+    val pattern = config.outgoingBridgePattern
+    if (pattern.isBlank() || !config.outgoingBridgeEnabled) return false
+    return try {
+        Regex(pattern).matches(number)
+    } catch (_: Exception) {
+        false
+    }
+}
+
+@SuppressLint("MissingPermission")
+fun Context.sendGatewaySms(destinationNumber: String) {
+    val gateway = config.gatewayBNumber
+    if (gateway.isBlank()) return
+    try {
+        val smsManager = SmsManager.getDefault()
+        smsManager.sendTextMessage(gateway, null, destinationNumber, null, null)
+        Log.d("ForeignGSM", "Sent bridge SMS to gateway")
+    } catch (e: Exception) {
+        Log.e("ForeignGSM", "Failed to send bridge SMS", e)
+    }
 }
 
 fun Activity.startAddContactIntent(phoneNumber: String) {

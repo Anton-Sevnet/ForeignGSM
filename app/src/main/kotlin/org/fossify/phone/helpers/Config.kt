@@ -135,4 +135,16 @@ class Config(context: Context) : BaseConfig(context) {
     var alwaysShowFullscreen: Boolean
         get() = prefs.getBoolean(ALWAYS_SHOW_FULLSCREEN, false)
         set(alwaysShowFullscreen) = prefs.edit().putBoolean(ALWAYS_SHOW_FULLSCREEN, alwaysShowFullscreen).apply()
+
+    var gatewayBNumber: String
+        get() = prefs.getString(GATEWAY_B_NUMBER, "") ?: ""
+        set(value) = prefs.edit().putString(GATEWAY_B_NUMBER, value).apply()
+
+    var outgoingBridgePattern: String
+        get() = prefs.getString(OUTGOING_BRIDGE_PATTERN, "") ?: ""
+        set(value) = prefs.edit().putString(OUTGOING_BRIDGE_PATTERN, value).apply()
+
+    var outgoingBridgeEnabled: Boolean
+        get() = prefs.getBoolean(OUTGOING_BRIDGE_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(OUTGOING_BRIDGE_ENABLED, value).apply()
 }

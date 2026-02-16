@@ -21,6 +21,12 @@ class CallManager {
         private val calls = mutableListOf<Call>()
         private val listeners = CopyOnWriteArraySet<CallManagerListener>()
 
+        @Volatile
+        var bridgedCallerNumber: String? = null
+
+        @Volatile
+        var bridgedDestinationNumber: String? = null
+
         fun onCallAdded(call: Call) {
             this.call = call
             calls.add(call)
@@ -44,6 +50,8 @@ class CallManager {
 
         fun onCallRemoved(call: Call) {
             calls.remove(call)
+            bridgedCallerNumber = null
+            bridgedDestinationNumber = null
             updateState()
         }
 

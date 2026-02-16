@@ -20,6 +20,7 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
         return
     }
 
+    val bridgedNumber = CallManager.bridgedCallerNumber
     val privateCursor = context.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
     ensureBackgroundThread {
         val callContact = CallContact("", "", "", "")
@@ -29,12 +30,12 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
             null
         }
 
-        if (handle == null) {
+        if (handle == null && bridgedNumber == null) {
             callback(callContact)
             return@ensureBackgroundThread
         }
 
-        val uri = Uri.decode(handle)
+        val uri = if (bridgedNumber != null) "tel:$bridgedNumber" else Uri.decode(handle!!)
         if (uri.startsWith("tel:")) {
             val number = uri.substringAfter("tel:")
             ContactsHelper(context).getContacts(getAll = true, showOnlyContactsWithNumbers = true) { contacts ->
