@@ -14,6 +14,7 @@
 | Файл | Назначение |
 |------|------------|
 | `relay.php` | Демон |
+| `run-forever.sh` | Цикл `while true` + `sleep 2` для автоперезапуска (вызывается из init.d) |
 | `lib/GoIP/*.php` | UDP-протокол (MIT, upstream: cjzamora/goip-sms-gateway) |
 | `config.json.example` | Два шлюза |
 | `config.loopback.example.json` | Один шлюз (тест) |
