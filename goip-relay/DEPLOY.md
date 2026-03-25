@@ -25,7 +25,8 @@ chown root:root /etc/goip-relay/config.json
 
 - `sms_client_id` / `sms_password` — как на странице **Configurations → SMS** на GoIP (SMS Server).
 - `http_base`, `http_user`, `http_pass` — веб-доступ к шлюзу (как в браузере).
-- `destination` — номер получателя пересланного SMS.
+- `destination` — номер получателя пересланного SMS (удобный ввод: `+…`, `00…`, для РФ также `8…` / `9…` / `11 цифр с 7`); relay приводит к **E.164 с `+`** для `send.html`.
+- Опционально **`default_calling_code`** (корень JSON, только цифры, без `+`) — если номер национальный (6–12 цифр) и не попал под явные правила (например NANP без ведущей `1`).
 - Для двух шлюзов используйте `config.json.example` как образец и заполните `gw2`.
 
 ## 3. Лог
@@ -35,6 +36,8 @@ touch /var/log/goip-relay.log
 chmod 640 /var/log/goip-relay.log
 chown root:root /var/log/goip-relay.log
 ```
+
+Ротация (пример `/etc/logrotate.d/goip-relay`): еженедельно, 8 архивов, `compress`, `copytruncate` — без перезапуска демона.
 
 ## 4. Firewall / MikroTik
 

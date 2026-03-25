@@ -1,5 +1,6 @@
 {
   "listen_host": "0.0.0.0",
+  "default_calling_code": "7",
   "listen_port": 44444,
   "read_timeout": 1,
   "sms_max_length": 160,
@@ -19,8 +20,8 @@
       "match_slot": 1,
       "out_gw": "gw1",
       "out_slot": 1,
-      "destination": "<your_test_phone_e164_or_digits>",
-      "body_template": "From:{srcnum}\n{msg}"
+      "destination": "+<your_test_msisdn>",
+      "body_template": "From:{srcnum} {msg}"
     }
   ]
 }

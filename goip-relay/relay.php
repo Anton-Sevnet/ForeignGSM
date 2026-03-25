@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * ForeignGSM GoIP SMS relay: UDP 44444 (GoIP SMS Server) -> HTTP send.html on target gateway.
+ * ForeignGSM GoIP SMS relay: UDP 44444 (GoIP SMS Server) -> HTTP POST send.html on target gateway.
  * PHP 5.6+ CLI. Config: /etc/goip-relay/config.json or --config=path
  */
 
@@ -44,6 +44,8 @@ $listenHost = isset($config['listen_host']) ? $config['listen_host'] : '0.0.0.0'
 $listenPort = (int) $config['listen_port'];
 $logFile = isset($config['log_file']) ? $config['log_file'] : '/var/log/goip-relay.log';
 $smsMaxLen = isset($config['sms_max_length']) ? (int) $config['sms_max_length'] : 160;
+$debug = !empty($config['debug']);
+$defaultCallingCode = isset($config['default_calling_code']) ? $config['default_calling_code'] : null;
 
 /**
  * @param string $logFile
@@ -53,6 +55,20 @@ function goip_relay_log($logFile, $line)
 {
     $ts = date('Y-m-d H:i:s');
     @file_put_contents($logFile, "[{$ts}] {$line}\n", FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * @param string $buf
+ * @param int $max
+ * @return string
+ */
+function goip_debug_preview($buf, $max = 240)
+{
+    $s = preg_replace('/[\x00-\x1f]/', ' ', $buf);
+    if (strlen($s) > $max) {
+        return substr($s, 0, $max) . '...';
+    }
+    return $s;
 }
 
 /**
@@ -109,7 +125,7 @@ function goip_find_route($config, $gwKey, $slot)
 /**
  * @param array $gw outbound gateway block
  * @param int $line
- * @param string $destination E.164 or digits
+ * @param string $destination E.164 (+…), passed to send.html as n
  * @param string $body
  * @return array http_code, curl_error, response_preview
  */
@@ -123,7 +139,10 @@ function goip_send_sms_http($gw, $line, $destination, $body)
         'n' => $destination,
         'm' => $body,
     );
-    $url = $base . '/send.html?' . http_build_query($params, '', '&', PHP_QUERY_RFC1738);
+    // GoIP GS-* firmware: GET with m in the query string is truncated after the first ASCII space in m (CGI sscanf-style).
+    // POST application/x-www-form-urlencoded to send.html keeps m intact (verified against SMS OutBox). Encoding: PHP_QUERY_RFC1738.
+    $postBody = http_build_query($params, '', '&', PHP_QUERY_RFC1738);
+    $url = $base . '/send.html';
 
     if (!function_exists('curl_init')) {
         return array(0, 'curl not available', '');
@@ -131,6 +150,9 @@ function goip_send_sms_http($gw, $line, $destination, $body)
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postBody);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/x-www-form-urlencoded'));
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
     curl_setopt($ch, CURLOPT_TIMEOUT, 45);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
@@ -176,6 +198,65 @@ function goip_truncate_sms($text, $maxLen)
 }
 
 /**
+ * Normalize recipient MSISDN to E.164 (+country + national) for GoIP send.html parameter n.
+ *
+ * @param string $raw From route destination (any common typing).
+ * @param string|null $defaultCcDigits Optional country calling code without + (e.g. "1", "49", "7").
+ *        Used when the number is national (6–12 digits after optional leading 0) and no other rule matched.
+ * @return string
+ */
+function goip_normalize_destination_e164($raw, $defaultCcDigits = null)
+{
+    $s = trim((string) $raw);
+    if ($s === '') {
+        return $s;
+    }
+    $s = preg_replace('/[\s\-\.\(\)]/', '', $s);
+    if (preg_match('/^\+([0-9]{8,15})$/', $s, $m)) {
+        return '+' . $m[1];
+    }
+    if (preg_match('/^00([0-9]{8,14})$/', $s, $m)) {
+        return '+' . $m[1];
+    }
+    $d = preg_replace('/[^0-9]/', '', $s);
+    if ($d === '') {
+        return $raw;
+    }
+    if (strlen($d) === 11 && $d[0] === '8') {
+        return '+7' . substr($d, 1);
+    }
+    if (strlen($d) === 11 && $d[0] === '7') {
+        return '+' . $d;
+    }
+    if (strlen($d) === 10 && $d[0] === '9') {
+        return '+7' . $d;
+    }
+    $cc = null;
+    if ($defaultCcDigits !== null && $defaultCcDigits !== '') {
+        $cc = preg_replace('/[^0-9]/', '', (string) $defaultCcDigits);
+        if ($cc === '') {
+            $cc = null;
+        }
+    }
+    if ($cc !== null) {
+        $national = $d;
+        if (isset($national[0]) && $national[0] === '0') {
+            $national = substr($national, 1);
+        }
+        if (strlen($national) >= 6 && strlen($national) <= 12 && strlen($d) <= 12) {
+            return '+' . $cc . $national;
+        }
+    }
+    if (strlen($d) >= 11 && strlen($d) <= 15) {
+        return '+' . $d;
+    }
+    if (strlen($d) >= 8 && strlen($d) <= 10) {
+        return '+' . $d;
+    }
+    return '+' . $d;
+}
+
+/**
  * @param array $gw
  * @param array $data
  * @return bool
@@ -202,16 +283,37 @@ $server->on('bind', function ($server) use ($logFile, $listenHost, $listenPort) 
     goip_relay_log($logFile, "bind {$listenHost}:{$listenPort}");
 });
 
-$server->on('ack', function () use ($logFile) {
-    goip_relay_log($logFile, 'keepalive_ack');
+$server->on('ack', function ($server) use ($logFile, $debug) {
+    if ($debug) {
+        $o = $server->getOrigin();
+        $h = isset($o['host']) ? $o['host'] : '';
+        $p = isset($o['port']) ? $o['port'] : '';
+        goip_relay_log($logFile, 'keepalive_ack from=' . $h . ':' . $p);
+    } else {
+        goip_relay_log($logFile, 'keepalive_ack');
+    }
 });
 
-$server->on('ack-fail', function () use ($logFile) {
-    goip_relay_log($logFile, 'keepalive_ack_fail');
+$server->on('ack-fail', function ($server) use ($logFile, $debug) {
+    if ($debug) {
+        $o = $server->getOrigin();
+        $h = isset($o['host']) ? $o['host'] : '';
+        $p = isset($o['port']) ? $o['port'] : '';
+        goip_relay_log($logFile, 'keepalive_ack_fail to=' . $h . ':' . $p);
+    } else {
+        goip_relay_log($logFile, 'keepalive_ack_fail');
+    }
 });
 
-$server->on('message', function ($server, $buffer) use ($config, $logFile, $smsMaxLen) {
-    $data = GoIP\Util::parseArray($buffer);
+$server->on('message', function ($server, $buffer) use ($config, $logFile, $smsMaxLen, $debug, $defaultCallingCode) {
+    if ($debug) {
+        $o = $server->getOrigin();
+        $oh = isset($o['host']) ? $o['host'] : '';
+        $op = isset($o['port']) ? $o['port'] : '';
+        goip_relay_log($logFile, 'receive_udp from=' . $oh . ':' . $op . ' raw=' . goip_debug_preview($buffer));
+    }
+
+    $data = GoIP\Util::enrichReceiveFields($buffer, GoIP\Util::parseArray($buffer));
     $clientId = isset($data['id']) ? $data['id'] : '';
 
     $gwKey = goip_find_gateway_key($config, $clientId);
@@ -242,7 +344,7 @@ $server->on('message', function ($server, $buffer) use ($config, $logFile, $smsM
 
     $srcnum = isset($data['srcnum']) ? $data['srcnum'] : '';
     $msg = isset($data['msg']) ? $data['msg'] : '';
-    $template = isset($route['body_template']) ? $route['body_template'] : "From:{srcnum}\n{msg}";
+    $template = isset($route['body_template']) ? $route['body_template'] : "From:{srcnum} {msg}";
 
     $body = goip_render_body($template, array(
         'srcnum' => $srcnum,
@@ -250,16 +352,28 @@ $server->on('message', function ($server, $buffer) use ($config, $logFile, $smsM
     ));
     $body = goip_truncate_sms($body, $smsMaxLen);
 
-    $dest = isset($route['destination']) ? $route['destination'] : '';
+    $destRaw = isset($route['destination']) ? $route['destination'] : '';
+    $dest = goip_normalize_destination_e164($destRaw, $defaultCallingCode);
     $outSlot = isset($route['out_slot']) ? (int) $route['out_slot'] : 1;
+
+    if ($debug) {
+        if ($destRaw !== '' && $dest !== $destRaw) {
+            goip_relay_log($logFile, 'forward_dst_norm raw=' . $destRaw . ' e164=' . $dest);
+        }
+        $bodyDbg = goip_debug_preview($body, 200);
+        goip_relay_log(
+            $logFile,
+            'forward_debug gw=' . $gwKey . ' slot=' . $slot . ' -> ' . $outKey . ' L' . $outSlot
+            . ' dst=' . $dest . ' body_preview=' . $bodyDbg
+        );
+    }
 
     list($httpCode, $curlErr, $preview) = goip_send_sms_http($gwOut, $outSlot, $dest, $body);
 
-    $msgLen = strlen($msg);
     goip_relay_log(
         $logFile,
         'forward gw=' . $gwKey . ' slot=' . $slot . ' -> ' . $outKey . ' L' . $outSlot
-        . ' dst=' . $dest . ' srcnum=' . $srcnum . ' msg_len=' . $msgLen
+        . ' dst=' . $dest . ' srcnum=' . $srcnum
         . ' http=' . $httpCode . ' curl_err=' . ($curlErr ? $curlErr : '-')
         . ' resp=' . $preview
     );
