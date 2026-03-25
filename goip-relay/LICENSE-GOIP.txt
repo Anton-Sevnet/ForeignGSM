@@ -1,0 +1,7 @@
+The files under lib/GoIP/ are derived from goip-sms-gateway by Charles Zamora / Openovate Labs:
+https://github.com/cjzamora/goip-sms-gateway
+
+Copyright (c) 2014-2016 Openovate Labs
+MIT License — see upstream LICENSE in that repository.
+
+relay.php and surrounding ForeignGSM packaging are project-specific.

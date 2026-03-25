@@ -1,0 +1,33 @@
+{
+  "listen_host": "0.0.0.0",
+  "listen_port": 44444,
+  "read_timeout": 1,
+  "sms_max_length": 160,
+  "log_file": "/var/log/goip-relay.log",
+  "gateways": {
+    "gw1": {
+      "sms_client_id": "<sms_client_id_as_on_goip_web>",
+      "sms_password": "<sms_server_password_as_on_goip_web>",
+      "http_base": "http://<goip1_lan_ip>/default/en_US",
+      "http_user": "<goip_web_login>",
+      "http_pass": "<goip_web_password>"
+    },
+    "gw2": {
+      "sms_client_id": "<sms_client_id_goip2>",
+      "sms_password": "<sms_password_goip2>",
+      "http_base": "http://<goip2_lan_ip>/default/en_US",
+      "http_user": "<goip_web_login>",
+      "http_pass": "<goip_web_password>"
+    }
+  },
+  "routes": [
+    {
+      "match_gw": "gw1",
+      "match_slot": 1,
+      "out_gw": "gw2",
+      "out_slot": 1,
+      "destination": "<recipient_msisdn_digits>",
+      "body_template": "From:{srcnum}\n{msg}"
+    }
+  ]
+}

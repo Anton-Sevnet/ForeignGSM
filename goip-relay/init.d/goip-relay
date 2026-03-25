@@ -1,0 +1,49 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          goip-relay
+# Required-Start:    $network $remote_fs
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: GoIP SMS relay (UDP 44444 -> HTTP send.html)
+### END INIT INFO
+
+NAME=goip-relay
+DAEMON=/usr/bin/php
+RELAY_SCRIPT=/opt/goip-relay/relay.php
+PIDFILE=/var/run/goip-relay.pid
+CONFIG=/etc/goip-relay/config.json
+
+test -x "$DAEMON" || exit 0
+test -f "$RELAY_SCRIPT" || exit 0
+
+. /lib/lsb/init-functions
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting $NAME"
+        start-stop-daemon --start --quiet --oknodo --pidfile "$PIDFILE" --make-pidfile \
+            --background --startas "$DAEMON" -- "$RELAY_SCRIPT" --config="$CONFIG"
+        log_end_msg $?
+        ;;
+    stop)
+        log_daemon_msg "Stopping $NAME"
+        start-stop-daemon --stop --quiet --oknodo --pidfile "$PIDFILE" --retry=TERM/30/KILL/5
+        log_end_msg $?
+        rm -f "$PIDFILE"
+        ;;
+    restart|force-reload)
+        "$0" stop
+        sleep 1
+        "$0" start
+        ;;
+    status)
+        status_of_proc -p "$PIDFILE" "$DAEMON" "$NAME" && exit 0 || exit $?
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}" >&2
+        exit 3
+        ;;
+esac
+
+exit 0
