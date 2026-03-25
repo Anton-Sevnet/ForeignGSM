@@ -1,6 +1,5 @@
 package org.fossify.phone.activities
 
-import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -30,6 +29,8 @@ import org.fossify.commons.helpers.FONT_SIZE_LARGE
 import org.fossify.commons.helpers.FONT_SIZE_MEDIUM
 import org.fossify.commons.helpers.FONT_SIZE_SMALL
 import org.fossify.commons.helpers.NavigationIcon
+import org.fossify.commons.helpers.PERMISSION_READ_SMS
+import org.fossify.commons.helpers.PERMISSION_SEND_SMS
 import org.fossify.commons.helpers.ON_CLICK_CALL_CONTACT
 import org.fossify.commons.helpers.ON_CLICK_VIEW_CONTACT
 import org.fossify.commons.helpers.TAB_CALL_HISTORY
@@ -442,8 +443,8 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun requestBridgePermissions(callback: () -> Unit) {
-        handlePermission(Manifest.permission.RECEIVE_SMS) { receiveGranted ->
-            handlePermission(Manifest.permission.SEND_SMS) { sendGranted ->
+        handlePermission(PERMISSION_READ_SMS) {
+            handlePermission(PERMISSION_SEND_SMS) {
                 callback()
             }
         }
