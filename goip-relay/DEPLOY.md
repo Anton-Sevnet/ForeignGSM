@@ -8,8 +8,8 @@
 scp -r goip-relay root@<ats_ip>:/tmp/
 ssh root@<ats_ip>
 mkdir -p /opt/goip-relay
-cp -a /tmp/goip-relay/relay.php /tmp/goip-relay/lib /opt/goip-relay/
-chmod 755 /opt/goip-relay/relay.php
+cp -a /tmp/goip-relay/relay.php /tmp/goip-relay/run-forever.sh /tmp/goip-relay/lib /opt/goip-relay/
+chmod 755 /opt/goip-relay/relay.php /opt/goip-relay/run-forever.sh
 ```
 
 ## 2. Конфиг
