@@ -1,0 +1,41 @@
+#!/bin/sh
+# Presignal SMS через MainSMS.ru (без GoIP). Для Asterisk предпочтительно foreigngsm-presignal-sms-wait.sh.
+# Copy to /usr/local/sbin/foreigngsm-presignal-sms.sh, chmod 700, заполнить /etc/foreigngsm-bridge.env
+
+ENV=${FOREIGNGSM_BRIDGE_ENV:-/etc/foreigngsm-bridge.env}
+if [ -r "$ENV" ]; then
+	# shellcheck source=/dev/null
+	. "$ENV"
+fi
+
+MAINSMS_URL=${MAINSMS_URL:-https://mainsms.ru/api/message/send}
+MAINSMS_HTTP_MAXTIME=${MAINSMS_HTTP_MAXTIME:-3}
+RU_LEAD8_TO7=${RU_LEAD8_TO7:-yes}
+
+REC=$(printf '%s' "${DEST_MSISDN:-}" | tr -cd '0123456789')
+if [ -z "$MAINSMS_PROJECT" ] || [ -z "$MAINSMS_APIKEY" ] || [ -z "$REC" ]; then
+	exit 0
+fi
+
+if [ "$RU_LEAD8_TO7" != "no" ] && [ "${#REC}" -eq 11 ]; then
+	case $REC in
+	8*) REC="7${REC#8}" ;;
+	esac
+fi
+
+CID=$(printf '%s' "${1:-unknown}" | tr -d ' \t\r\n')
+PRESIGNAL_SMS_TOKEN=${PRESIGNAL_SMS_TOKEN:-}
+MSG="From:${CID} bridge"
+if [ -n "$PRESIGNAL_SMS_TOKEN" ]; then
+	MSG="${MSG} ${PRESIGNAL_SMS_TOKEN}"
+fi
+
+curl -sS --max-time "$MAINSMS_HTTP_MAXTIME" -o /dev/null \
+	-X GET "$MAINSMS_URL" \
+	-H 'Accept: application/json' \
+	-F "project=$MAINSMS_PROJECT" \
+	-F "recipients=$REC" \
+	--form-string "message=$MSG" \
+	-F "apikey=$MAINSMS_APIKEY" || true
+
+exit 0

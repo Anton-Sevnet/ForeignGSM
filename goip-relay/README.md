@@ -19,6 +19,10 @@
 | `config.json.example` | Два шлюза |
 | `config.loopback.example.json` | Один шлюз (тест) |
 | `init.d/goip-relay` | SysV init (Debian 8) |
+| `scripts/foreigngsm-presignal-sms.sh.example` | Пресигнал через **MainSMS.ru** (как `wait`-скрипт); env: `foreigngsm-bridge.env.example` |
+| `scripts/foreigngsm-presignal-sms-wait.sh` | Пресигнал **MainSMS.ru**, короткий `curl`, **всегда exit 0**; тело `From:<CID> bridge` + опционально `PRESIGNAL_SMS_TOKEN` (8 символов, как в приложении) |
+
+Связка с мостом ForeignGSM и форматы **+7 / +998**: см. [../../docs/contracts-bridge.md](../../docs/contracts-bridge.md).
 
 ## Лицензия
 

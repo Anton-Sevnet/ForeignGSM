@@ -20,9 +20,9 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
         return
     }
 
-    val bridgedNumber = CallManager.bridgedCallerNumber
     val privateCursor = context.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
     ensureBackgroundThread {
+        val bridgedNumber = CallManager.bridgedCallerNumber
         val callContact = CallContact("", "", "", "")
         val handle = try {
             call?.details?.handle?.toString()

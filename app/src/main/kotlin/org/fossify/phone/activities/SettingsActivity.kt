@@ -3,6 +3,7 @@ package org.fossify.phone.activities
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import android.view.Menu
@@ -14,6 +15,7 @@ import org.fossify.commons.dialogs.ChangeDateTimeFormatDialog
 import org.fossify.commons.dialogs.FeatureLockedDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.addLockedLabelIfNeeded
+import org.fossify.commons.extensions.isDefaultDialer
 import org.fossify.commons.extensions.getAlertDialogBuilder
 import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.extensions.beVisibleIf
@@ -37,13 +39,16 @@ import org.fossify.commons.helpers.TAB_CALL_HISTORY
 import org.fossify.commons.helpers.TAB_CONTACTS
 import org.fossify.commons.helpers.TAB_FAVORITES
 import org.fossify.commons.helpers.TAB_LAST_USED
+import org.fossify.commons.helpers.REQUEST_CODE_SET_DEFAULT_DIALER
 import org.fossify.commons.helpers.isNougatPlus
 import org.fossify.commons.helpers.isQPlus
 import org.fossify.commons.helpers.isTiramisuPlus
 import org.fossify.commons.models.RadioItem
 import org.fossify.phone.R
+import org.fossify.phone.extensions.launchSetDefaultDialerIntent
 import org.fossify.phone.databinding.ActivitySettingsBinding
 import org.fossify.phone.dialogs.ExportCallHistoryDialog
+import org.fossify.phone.helpers.GatewaySmsBodyParser
 import org.fossify.phone.dialogs.ManageVisibleTabsDialog
 import org.fossify.phone.extensions.canLaunchAccountsConfiguration
 import org.fossify.phone.extensions.config
@@ -120,9 +125,11 @@ class SettingsActivity : SimpleActivity() {
         setupDisableProximitySensor()
         setupDisableSwipeToAnswer()
         setupAlwaysShowFullscreen()
+        setupDefaultPhoneApp()
         setupCallsExport()
         setupCallsImport()
         setupGatewayBNumber()
+        setupGatewayPresignalToken()
         setupOutgoingBridgePattern()
         setupOutgoingBridgeEnabled()
         updateTextColors(binding.settingsHolder)
@@ -135,6 +142,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsCallsLabel,
                 settingsDialpadSectionLabel,
                 settingsGatewaySectionLabel,
+                settingsGatewayPresignalTokenLabel,
                 settingsMigrationSectionLabel
             ).forEach {
                 it.setTextColor(getProperPrimaryColor())
@@ -400,6 +408,34 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    private fun setupDefaultPhoneApp() {
+        binding.apply {
+            settingsDefaultPhoneAppStatus.text = if (isDefaultDialer()) {
+                getString(R.string.default_phone_app_status_set)
+            } else {
+                getString(R.string.default_phone_app_status_not_set)
+            }
+            settingsDefaultPhoneAppHolder.setOnClickListener {
+                if (!isDefaultDialer()) {
+                    launchSetDefaultDialerIntent()
+                } else {
+                    try {
+                        startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+                    } catch (_: Exception) {
+                        toast(R.string.default_phone_app_status_set)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_SET_DEFAULT_DIALER) {
+            setupDefaultPhoneApp()
+        }
+    }
+
     private fun setupCallsExport() {
         binding.settingsExportCallsHolder.setOnClickListener {
             ExportCallHistoryDialog(this) { filename ->
@@ -437,6 +473,45 @@ class SettingsActivity : SimpleActivity() {
                     }
                     .setNegativeButton(org.fossify.commons.R.string.cancel, null)
                     .show()
+                }
+            }
+        }
+    }
+
+    private fun setupGatewayPresignalToken() {
+        binding.apply {
+            fun refreshLabel() {
+                settingsGatewayPresignalToken.text = config.gatewayPresignalToken.ifEmpty {
+                    getString(R.string.not_set)
+                }
+            }
+            refreshLabel()
+            settingsGatewayPresignalTokenHolder.setOnClickListener {
+                requestBridgePermissions {
+                    val editText = EditText(this@SettingsActivity).apply {
+                        hint = getString(R.string.gateway_presignal_token_summary)
+                        setText(config.gatewayPresignalToken)
+                        setPadding(48, 32, 48, 32)
+                    }
+                    getAlertDialogBuilder()
+                        .setTitle(R.string.gateway_presignal_token)
+                        .setView(editText)
+                        .setPositiveButton(org.fossify.commons.R.string.ok) { _, _ ->
+                            val raw = editText.text.toString().trim()
+                            if (raw.isEmpty()) {
+                                config.gatewayPresignalToken = ""
+                                refreshLabel()
+                                return@setPositiveButton
+                            }
+                            if (!GatewaySmsBodyParser.isValidPresignalToken(raw)) {
+                                toast(R.string.gateway_presignal_token_invalid)
+                                return@setPositiveButton
+                            }
+                            config.gatewayPresignalToken = raw
+                            refreshLabel()
+                        }
+                        .setNegativeButton(org.fossify.commons.R.string.cancel, null)
+                        .show()
                 }
             }
         }

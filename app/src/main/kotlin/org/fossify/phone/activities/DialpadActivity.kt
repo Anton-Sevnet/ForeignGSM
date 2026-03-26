@@ -45,6 +45,7 @@ import org.fossify.commons.helpers.REQUEST_CODE_SET_DEFAULT_DIALER
 import org.fossify.commons.helpers.isOreoPlus
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
+import org.fossify.phone.extensions.launchSetDefaultDialerIntent
 import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.ActivityDialpadBinding
 import org.fossify.phone.extensions.addCharacter

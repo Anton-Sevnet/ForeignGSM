@@ -12,6 +12,7 @@ import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.REQUEST_CODE_SET_DEFAULT_DIALER
 import org.fossify.phone.R
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.launchSetDefaultDialerIntent
 import org.fossify.phone.extensions.getHandleToUse
 import org.fossify.phone.extensions.matchesOutgoingBridgePattern
 import org.fossify.phone.extensions.sendGatewaySms
@@ -50,7 +51,7 @@ class DialerActivity : SimpleActivity() {
                 sendGatewaySms(originalNumber)
                 CallMetadataBridge.storeOutgoing(originalNumber)
                 CallManager.bridgedDestinationNumber = originalNumber
-                callNumber = Uri.parse("tel:${config.gatewayBNumber}")
+                callNumber = Uri.parse("tel:${config.primaryGatewayNumber()}")
             }
 
             if (isNumberBlocked(callNumber.toString().replace("tel:", ""), getBlockedNumbers())) {

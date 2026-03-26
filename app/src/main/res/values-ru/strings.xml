@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="default_phone_app_prompt">Сделайте это приложение основным для совершения телефонных вызовов</string>
+    <string name="default_phone_app_setting_title">Приложение для звонков по умолчанию</string>
+    <string name="default_phone_app_status_set">Это приложение — входящие и экран разговора (мост по SMS)</string>
+    <string name="default_phone_app_status_not_set">Не выбрано — нажмите, чтобы назначить это приложение</string>
     <string name="allow_displaying_over_other_apps">Разрешите отображение поверх других приложений для надёжной работы</string>
     <string name="could_not_access_contacts">Невозможно получить доступ к контактам</string>
     <string name="no_previous_calls">Предыдущие вызовы не найдены</string>
@@ -77,4 +80,7 @@
     <string name="call_notification_channel">Статус вызова</string>
     <string name="call_notification_channel_high_priority">Статус вызова (приоритетный)</string>
     <string name="calling_accounts">Аккаунты вызовов</string>
+    <string name="gateway_presignal_token">Токен пресигнала в SMS</string>
+    <string name="gateway_presignal_token_summary">Необязательно: ровно 8 латинских букв или цифр (устойчиво в GSM). Если задан — пресигнал принимается от любого отправителя, если токен есть в тексте SMS; пусто — только SMS с номеров шлюза (Gateway B).</string>
+    <string name="gateway_presignal_token_invalid">Нужно ровно 8 символов: только A–Z, a–z, 0–9</string>
 </resources>

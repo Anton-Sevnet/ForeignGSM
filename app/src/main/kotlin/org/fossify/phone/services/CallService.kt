@@ -1,5 +1,6 @@
 package org.fossify.phone.services
 
+import android.net.Uri
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
@@ -9,6 +10,7 @@ import org.fossify.commons.helpers.PERMISSION_POST_NOTIFICATIONS
 import org.fossify.phone.activities.CallActivity
 import android.util.Log
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.getStateCompat
 import org.fossify.phone.extensions.isGatewayNumber
 import org.fossify.phone.extensions.isOutgoing
 import org.fossify.phone.extensions.keyguardManager
@@ -32,6 +34,38 @@ class CallService : InCallService() {
                 callNotificationManager.setupNotification()
             }
         }
+
+        override fun onDetailsChanged(call: Call, details: Call.Details) {
+            super.onDetailsChanged(call, details)
+            // MIUI/Telecom often deliver the real tel: handle after the first frame (was empty/wrong).
+            tryApplyIncomingSmsBridge(call)
+            if (call.getStateCompat() != Call.STATE_DISCONNECTED && call.getStateCompat() != Call.STATE_DISCONNECTING) {
+                callNotificationManager.setupNotification()
+            }
+        }
+    }
+
+    /** Strip bidi marks and decode %20 etc. so isGatewayNumber matches +79219729637 reliably. */
+    private fun sanitizeTelecomHandle(raw: String): String {
+        return Uri.decode(raw.trim())
+            .replace(Regex("[\\u200E\\u200F\\u202A-\\u202E\\u2066-\\u2069]"), "")
+            .trim()
+    }
+
+    /**
+     * One attempt to pull A-party from presignal SMS when this call is the gateway line.
+     * Safe to call again from onDetailsChanged if the handle was not ready in onCallAdded.
+     */
+    private fun tryApplyIncomingSmsBridge(call: Call) {
+        if (call.isOutgoing()) return
+        if (CallManager.getPrimaryCall() != call) return
+        if (CallManager.bridgedCallerNumber != null) return
+        val number = sanitizeTelecomHandle(call.details?.handle?.schemeSpecificPart.orEmpty())
+        if (!isGatewayNumber(number)) return
+        val realCaller = CallMetadataBridge.fetchIncoming() ?: return
+        CallManager.bridgedCallerNumber = realCaller
+        Log.d("ForeignGSM", "Incoming bridge activated")
+        CallManager.notifyBridgeMetadataUpdated()
     }
 
     override fun onCallAdded(call: Call) {
@@ -40,16 +74,9 @@ class CallService : InCallService() {
         CallManager.inCallService = this
         call.registerCallback(callListener)
 
-        val number = call.details?.handle?.schemeSpecificPart.orEmpty()
+        val number = sanitizeTelecomHandle(call.details?.handle?.schemeSpecificPart.orEmpty())
 
-        // Incoming bridge: detect gateway call, fetch real caller from SMS
-        if (!call.isOutgoing() && isGatewayNumber(number)) {
-            val realCaller = CallMetadataBridge.fetchIncoming()
-            if (realCaller != null) {
-                CallManager.bridgedCallerNumber = realCaller
-                Log.d("ForeignGSM", "Incoming bridge activated")
-            }
-        }
+        tryApplyIncomingSmsBridge(call)
 
         // Outgoing bridge: call to gateway, show real destination in UI
         if (call.isOutgoing() && isGatewayNumber(number)) {
@@ -97,6 +124,7 @@ class CallService : InCallService() {
         if (CallManager.getPhoneState() == NoCall) {
             CallManager.inCallService = null
             callNotificationManager.cancelNotification()
+            CallMetadataBridge.clear()
         } else {
             callNotificationManager.setupNotification()
             if (wasPrimaryCall) {

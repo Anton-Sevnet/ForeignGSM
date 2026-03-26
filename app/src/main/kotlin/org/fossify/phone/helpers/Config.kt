@@ -140,6 +140,23 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getString(GATEWAY_B_NUMBER, "") ?: ""
         set(value) = prefs.edit().putString(GATEWAY_B_NUMBER, value).apply()
 
+    /**
+     * If non-empty: trust presignal SMS from **any** sender when the body contains this token (case-insensitive match).
+     * Must be exactly 8 chars [A-Za-z0-9] (GSM-safe). Same value must be appended on the server (MainSMS message).
+     */
+    var gatewayPresignalToken: String
+        get() = prefs.getString(GATEWAY_PRESIGNAL_TOKEN, "") ?: ""
+        set(value) = prefs.edit().putString(GATEWAY_PRESIGNAL_TOKEN, value.trim().uppercase(Locale.US)).apply()
+
+    /** Comma/semicolon/newline-separated: SMS sender and incoming call CLI may differ (e.g. different SIM vs PSTN). */
+    fun gatewayNumbersList(): List<String> {
+        val raw = gatewayBNumber.trim()
+        if (raw.isBlank()) return emptyList()
+        return raw.split(Regex("[,;\\n]+")).map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    fun primaryGatewayNumber(): String = gatewayNumbersList().firstOrNull() ?: gatewayBNumber.trim()
+
     var outgoingBridgePattern: String
         get() = prefs.getString(OUTGOING_BRIDGE_PATTERN, "") ?: ""
         set(value) = prefs.edit().putString(OUTGOING_BRIDGE_PATTERN, value).apply()

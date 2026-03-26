@@ -296,6 +296,29 @@
                 android:text="@string/calls" />
 
             <RelativeLayout
+                android:id="@+id/settings_default_phone_app_holder"
+                style="@style/SettingsHolderTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_default_phone_app_label"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/default_phone_app_setting_title" />
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_default_phone_app_status"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_default_phone_app_label"
+                    tools:text="@string/default_phone_app_status_not_set" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_group_subsequent_calls_holder"
                 style="@style/SettingsHolderSwitchStyle"
                 android:layout_width="match_parent"
@@ -471,6 +494,29 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_below="@+id/settings_gateway_number_label"
+                    tools:text="@string/not_set" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_gateway_presignal_token_holder"
+                style="@style/SettingsHolderTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_gateway_presignal_token_label"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gateway_presignal_token" />
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_gateway_presignal_token"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_gateway_presignal_token_label"
                     tools:text="@string/not_set" />
 
             </RelativeLayout>

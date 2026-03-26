@@ -90,6 +90,8 @@ class CallActivity : SimpleActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
+        updateCallContactInfo(CallManager.getPrimaryCall())
         updateState()
     }
 
@@ -814,6 +816,10 @@ class CallActivity : SimpleActivity() {
             callDurationHandler.removeCallbacks(updateCallDurationTask)
             updateCallContactInfo(call)
             updateState()
+        }
+
+        override fun onBridgeMetadataUpdated() {
+            updateCallContactInfo(CallManager.getPrimaryCall())
         }
     }
 

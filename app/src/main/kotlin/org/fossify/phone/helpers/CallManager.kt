@@ -207,6 +207,13 @@ class CallManager {
             listeners.remove(listener)
         }
 
+        /** SMS arrived after [CallService.onCallAdded]: refresh in-call UI. */
+        fun notifyBridgeMetadataUpdated() {
+            for (listener in listeners) {
+                listener.onBridgeMetadataUpdated()
+            }
+        }
+
         fun getState() = getPrimaryCall()?.getStateCompat()
 
         fun keypad(char: Char) {
@@ -222,6 +229,7 @@ interface CallManagerListener {
     fun onStateChanged()
     fun onAudioStateChanged(audioState: AudioRoute)
     fun onPrimaryCallChanged(call: Call)
+    fun onBridgeMetadataUpdated() {}
 }
 
 sealed class PhoneState

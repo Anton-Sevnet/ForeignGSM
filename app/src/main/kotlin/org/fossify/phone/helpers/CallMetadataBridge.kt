@@ -4,7 +4,8 @@ import android.util.Log
 
 object CallMetadataBridge {
     private const val TAG = "ForeignGSM"
-    private const val TTL_MS = 10_000L
+    /** Room for HTTP SMS pre-signal + GSM setup (was 10s; calls often arrived first). */
+    private const val TTL_MS = 45_000L
 
     @Volatile
     private var realCallerNumber: String? = null

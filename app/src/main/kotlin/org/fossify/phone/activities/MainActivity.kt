@@ -36,6 +36,7 @@ import org.fossify.phone.extensions.clearMissedCalls
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.handleFullScreenNotificationsPermission
 import org.fossify.phone.extensions.launchCreateNewContactIntent
+import org.fossify.phone.extensions.launchSetDefaultDialerIntent
 import org.fossify.phone.fragments.ContactsFragment
 import org.fossify.phone.fragments.FavoritesFragment
 import org.fossify.phone.fragments.MyViewPagerFragment
